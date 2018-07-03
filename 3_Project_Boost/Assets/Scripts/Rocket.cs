@@ -78,7 +78,7 @@ public class Rocket : MonoBehaviour
     {
         //can thrust while rotating
 
-        rigidBody.AddRelativeForce(Vector3.up * mainThrust);
+        rigidBody.AddRelativeForce(Vector3.up * mainThrust * Time.deltaTime);
 
         if (!audioSource.isPlaying)
         {
@@ -86,7 +86,6 @@ public class Rocket : MonoBehaviour
         }
         mainEngineParticles.Play();
     }
-
     //check if a or d is pressed, if so call rotate ship
     private void RespondToRotateInput()
     {
