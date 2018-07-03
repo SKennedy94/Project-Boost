@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Rocket : MonoBehaviour
@@ -9,6 +10,7 @@ public class Rocket : MonoBehaviour
 
     [SerializeField] private float rcsThrust = 100f;
     [SerializeField] private float mainThrust = 100f;
+    [SerializeField] private float levelLoadDelay = 1f;
 
     [SerializeField] AudioClip mainEngine;
     [SerializeField] AudioClip Death;
@@ -18,7 +20,7 @@ public class Rocket : MonoBehaviour
     [SerializeField] ParticleSystem deathParticles;
     [SerializeField] ParticleSystem winParticles;
 
-    enum State { Alive, Dying, Transcending};
+    enum State { Alive, Dying, Transcending, Debug};
     State state = State.Alive;
 #endregion Variables
 
@@ -35,6 +37,10 @@ public class Rocket : MonoBehaviour
     {
         RespondToThrustInput();
         RespondToRotateInput();
+        if (Debug.isDebugBuild)
+        {
+            DebugKeys();
+        }
     }
 
     void OnCollisionEnter(Collision collision)
@@ -60,7 +66,7 @@ public class Rocket : MonoBehaviour
     //check if thrust input is pressed if so call applythrust
     private void RespondToThrustInput()
     {
-        if (state == State.Alive)
+        if (state == State.Alive || state == State.Debug)
         {
             if (Input.GetKey(KeyCode.Space))
             {
@@ -89,7 +95,7 @@ public class Rocket : MonoBehaviour
     //check if a or d is pressed, if so call rotate ship
     private void RespondToRotateInput()
     {
-        if (state == State.Alive)
+        if (state == State.Alive || state == State.Debug)
         {
             RotateShip();
         }
@@ -114,7 +120,15 @@ public class Rocket : MonoBehaviour
     //loads the next scene based on the level variable
     private void LoadNextScene()
     {
-        SceneManager.LoadScene(1); //allow for more than two levels
+        int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        int nextSceneIndex = currentSceneIndex + 1;
+        print(nextSceneIndex);
+        //TODO remove hardcoded level cap to a variable
+        if(nextSceneIndex == SceneManager.sceneCountInBuildSettings)
+        {
+            nextSceneIndex = 0;
+        }
+        SceneManager.LoadScene(nextSceneIndex); //allow for more than two levels
     }
     private void LoadFirstLevel()
     {
@@ -127,7 +141,7 @@ public class Rocket : MonoBehaviour
         mainEngineParticles.Stop();
         deathParticles.Play();
         audioSource.PlayOneShot(Death);
-        Invoke("LoadFirstLevel", 1f);
+        Invoke("LoadFirstLevel", levelLoadDelay);
     }
     private void StartWinSequence()
     {
@@ -136,7 +150,23 @@ public class Rocket : MonoBehaviour
         winParticles.Play();
         audioSource.PlayOneShot(Win);
         state = State.Transcending;
-        Invoke("LoadNextScene", 1f);
+        Invoke("LoadNextScene", levelLoadDelay);
     }
-#endregion Methods
+
+    private void DebugKeys()
+    {
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            LoadNextScene();
+        }
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            if (state == State.Debug)
+                state = State.Alive;
+            else
+                state = State.Debug;
+            print(state);
+        }
+    }
+    #endregion Methods
 }
