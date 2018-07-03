@@ -1,111 +1,131 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class Rocket : MonoBehaviour {
-    #region Variables
+public class Rocket : MonoBehaviour
+{
+#region Variables
     Rigidbody rigidBody;
     AudioSource audioSource;
 
     [SerializeField] private float rcsThrust = 100f;
     [SerializeField] private float mainThrust = 100f;
+    [SerializeField] AudioClip mainEngine;
+    [SerializeField] AudioClip Death;
+    [SerializeField] AudioClip Win;
 
     enum State { Alive, Dying, Transcending};
     State state = State.Alive;
+#endregion Variables
 
-    public int level = 0;
-    #endregion Variables
-
-    #region Messages
+#region Messages
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
         rigidBody = GetComponent<Rigidbody>();
         audioSource = GetComponent<AudioSource>();
-        //SceneManager.LoadScene(0);
     }
 	
 	// Update is called once per frame
-	void Update () {
-        ApplyThrust();
-        RotateShip();
+	void Update ()
+    {
+        RespondToThrustInput();
+        RespondToRotateInput();
     }
 
     void OnCollisionEnter(Collision collision)
     {
+        if (state != State.Alive) { return; }
+
         switch (collision.gameObject.tag)
         {
             case "Friendly":
                 //do nothing
-                print("you are safe");
                 break;
             case "Finish":
-                state = State.Transcending;
-                Invoke("LoadNextScene", 1f);
+                StartWinSequence();
                 break;
             default:
-                state = State.Dying;
-                audioSource.Pause();
-                level = 0;
-                Invoke("LoadNextScene", 2f);
+                StartDeathSequence();
                 break;
         }
     }
     #endregion Messages
 
-    #region Methods
-    //apply relatice force if space is held
-    private void ApplyThrust()
+#region Methods
+    //check if thrust input is pressed if so call applythrust
+    private void RespondToThrustInput()
     {
         if (state == State.Alive)
         {
-            if (Input.GetKey(KeyCode.Space)) //can trhust while rotating
-            {
-
-                rigidBody.AddRelativeForce(Vector3.up * mainThrust);
-
-                if (!audioSource.isPlaying)
-                {
-                    audioSource.Play();
-                }
-            }
-            else
-            {
-                audioSource.Pause();
-            }
+            ApplyThrust();
         }
     }
-    //rotates the ship left or right if a or d is pressed
-    private void RotateShip()
+    //apply relatice force in up direction
+    private void ApplyThrust()
+    {
+        if (Input.GetKey(KeyCode.Space)) //can trhust while rotating
+        {
+
+            rigidBody.AddRelativeForce(Vector3.up * mainThrust);
+
+            if (!audioSource.isPlaying)
+            {
+                audioSource.PlayOneShot(mainEngine);
+            }
+        }
+        else
+        {
+            audioSource.Stop();
+        }
+    }
+
+    //check if a or d is pressed, if so call rotate ship
+    private void RespondToRotateInput()
     {
         if (state == State.Alive)
         {
-            rigidBody.freezeRotation = true; // take manual control of rotation
-            float rotationThisFrame = rcsThrust * Time.deltaTime;
-
-            if (Input.GetKey(KeyCode.A))
-            {
-                transform.Rotate(Vector3.forward * rotationThisFrame);
-            }
-            else if (Input.GetKey(KeyCode.D))
-            {
-                transform.Rotate(-Vector3.forward * rotationThisFrame);
-            }
-
-            rigidBody.freezeRotation = false;
+            RotateShip();
         }
+    }
+    //rotates the ship left or right
+    private void RotateShip()
+    {
+        rigidBody.freezeRotation = true; // take manual control of rotation
+        float rotationThisFrame = rcsThrust * Time.deltaTime;
+
+        if (Input.GetKey(KeyCode.A))
+        {
+            transform.Rotate(Vector3.forward * rotationThisFrame);
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            transform.Rotate(-Vector3.forward * rotationThisFrame);
+        }
+
+        rigidBody.freezeRotation = false;
     }
     //loads the next scene based on the level variable
     private void LoadNextScene()
     {
-        level++;
-        state = State.Alive;
-
-        if (level > 1)
-        {
-            print("beat all levels");
-            level = 0;
-        }
-
-        SceneManager.LoadScene(level); //allow for more than two levels
+        SceneManager.LoadScene(1); //allow for more than two levels
     }
-    #endregion Methods
+    private void LoadFirstLevel()
+    {
+        SceneManager.LoadScene(0); //allow for more than two levels
+    }
+    private void StartDeathSequence()
+    {
+        state = State.Dying;
+        audioSource.Stop();
+        audioSource.PlayOneShot(Death);
+        Invoke("LoadFirstLevel", 2f);
+    }
+    private void StartWinSequence()
+    {
+        audioSource.Stop();
+        audioSource.PlayOneShot(Win);
+        state = State.Transcending;
+        Invoke("LoadNextScene", 1f);
+    }
+#endregion Methods
 }
