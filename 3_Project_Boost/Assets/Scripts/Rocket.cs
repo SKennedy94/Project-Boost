@@ -9,9 +9,14 @@ public class Rocket : MonoBehaviour
 
     [SerializeField] private float rcsThrust = 100f;
     [SerializeField] private float mainThrust = 100f;
+
     [SerializeField] AudioClip mainEngine;
     [SerializeField] AudioClip Death;
     [SerializeField] AudioClip Win;
+
+    [SerializeField] ParticleSystem mainEngineParticles;
+    [SerializeField] ParticleSystem deathParticles;
+    [SerializeField] ParticleSystem winParticles;
 
     enum State { Alive, Dying, Transcending};
     State state = State.Alive;
@@ -57,26 +62,29 @@ public class Rocket : MonoBehaviour
     {
         if (state == State.Alive)
         {
-            ApplyThrust();
+            if (Input.GetKey(KeyCode.Space))
+            {
+                ApplyThrust();
+            }
+            else
+            {
+                audioSource.Stop();
+                mainEngineParticles.Stop();
+            }
         }
     }
     //apply relatice force in up direction
     private void ApplyThrust()
     {
-        if (Input.GetKey(KeyCode.Space)) //can trhust while rotating
-        {
+        //can thrust while rotating
 
-            rigidBody.AddRelativeForce(Vector3.up * mainThrust);
+        rigidBody.AddRelativeForce(Vector3.up * mainThrust);
 
-            if (!audioSource.isPlaying)
-            {
-                audioSource.PlayOneShot(mainEngine);
-            }
-        }
-        else
+        if (!audioSource.isPlaying)
         {
-            audioSource.Stop();
+            audioSource.PlayOneShot(mainEngine);
         }
+        mainEngineParticles.Play();
     }
 
     //check if a or d is pressed, if so call rotate ship
@@ -117,12 +125,16 @@ public class Rocket : MonoBehaviour
     {
         state = State.Dying;
         audioSource.Stop();
+        mainEngineParticles.Stop();
+        deathParticles.Play();
         audioSource.PlayOneShot(Death);
-        Invoke("LoadFirstLevel", 2f);
+        Invoke("LoadFirstLevel", 1f);
     }
     private void StartWinSequence()
     {
         audioSource.Stop();
+        mainEngineParticles.Stop();
+        winParticles.Play();
         audioSource.PlayOneShot(Win);
         state = State.Transcending;
         Invoke("LoadNextScene", 1f);
